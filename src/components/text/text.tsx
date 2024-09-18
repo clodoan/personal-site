@@ -43,7 +43,7 @@ const Text: React.FC<TextProps> = ({
 
   return (
     <Tag
-      className={`${variantClass} text-light-text dark:text-dark-text ${className} backdrop-filter blur(9.5px) brightness(9.5) saturate(11.5) mask-linear-gradient(#000 0 0) border-box text-shadow-0-1px-#000000a`}
+      className={`${variantClass} text-light-text dark:text-dark-text backdrop-filter blur(9.5px) brightness(9.5) saturate(11.5) mask-linear-gradient(#000 0 0) border-box text-shadow-0-1px-#000000a`}
     >
       {children}
     </Tag>

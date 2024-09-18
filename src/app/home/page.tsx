@@ -2,67 +2,66 @@
 
 import { Block, Text, StyledLink } from "@/components";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef } from "react";
-import * as THREE from "three";
-import { Mesh, ShaderMaterial } from "three";
+import { useRef, useEffect, useState } from "react";
+import { Mesh, ShaderMaterial, Vector2 } from "three";
 
-const AuroraBorealis = () => {
+const SkyBackground = () => {
   const meshRef = useRef<Mesh>(null);
+  const [resolution, setResolution] = useState(new Vector2(1, 1));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setResolution(new Vector2(window.innerWidth, window.innerHeight));
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useFrame((state, delta) => {
     if (meshRef.current) {
-      (meshRef.current.material as ShaderMaterial).uniforms.time.value += delta;
+      const material = meshRef.current.material as ShaderMaterial;
+      material.uniforms.time.value += delta;
     }
   });
 
   return (
     <mesh ref={meshRef}>
-      <planeGeometry args={[20, 20, 200, 200]} />
+      <planeGeometry args={[2, 2]} />
       <shaderMaterial
         uniforms={{
           time: { value: 0 },
-          resolution: { value: new THREE.Vector2() },
+          resolution: { value: resolution },
         }}
         vertexShader={`
           varying vec2 vUv;
           void main() {
             vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            gl_Position = vec4(position, 1.0);
           }
         `}
         fragmentShader={`
           uniform float time;
           uniform vec2 resolution;
           varying vec2 vUv;
-          
-          vec3 hsv2rgb(vec3 c) {
-            vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-            vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-            return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-          }
-          
+
           void main() {
-            vec2 uv = vUv;
-            vec3 finalColor = vec3(0.0);
+            vec2 uv = gl_FragCoord.xy / resolution.xy;
             
-            for(float i = 0.0; i < 3.0; i++) {
-              float t = time * (0.5 + i/5.0);
-              uv.y += (0.15 * sin(uv.x * 2.0 + i/3.0 + t) + 0.3);
-              float aurora = abs(0.15 / (uv.y - 0.5)) * 0.75;
-              
-              // Vary the hue based on position and time
-              float hue = mod(uv.x * 0.1 + t * 0.05 + i * 0.2, 1.0);
-              vec3 auroraColor = hsv2rgb(vec3(hue, 0.8, 1.0));
-              
-              finalColor += auroraColor * aurora;
-            }
+            // More noticeable sunset orange
+            vec3 skyBlue = vec3(0.843, 0.922, 0.961);  // Lighter blue
+            vec3 sunsetOrange = vec3(0.980, 0.882, 0.884);  // Lighter, closer to skyBlue
             
-            // Add subtle stars
-            if (length(fract(uv * 50.0) - 0.5) < 0.01) {
-              finalColor += vec3(0.5);
-            }
+            // Moving wave effect for the orange color
+            float wave = sin(uv.y + time * 0.4) * cos(uv.y * time * 0.8) * 0.1;
+            float orangePosition = smoothstep(0.0, 0.6, uv.y + wave + sin(time * 0.2) * 0.1);
+            vec3 skyColor = mix(sunsetOrange, skyBlue, orangePosition);
             
-            gl_FragColor = vec4(finalColor, 1.0);
+            // Subtle movement
+            float movement = sin(uv.y * 10.0 + time * 0.05) * 0.05;
+            skyColor = mix(skyColor, vec3(1.0), movement);
+            
+            gl_FragColor = vec4(skyColor, 1.0);
           }
         `}
       />
@@ -70,7 +69,7 @@ const AuroraBorealis = () => {
   );
 };
 
-export const Home = () => {
+const Home = () => {
   return (
     <>
       <Canvas
@@ -83,12 +82,14 @@ export const Home = () => {
           zIndex: -1,
         }}
       >
-        <AuroraBorealis />
+        <SkyBackground />
       </Canvas>
       <main className="flex flex-col gap-4 relative z-10">
         <Block>
-          <Text variant="label-1">Claudio Angrigiani.</Text>
-          <Text variant="body-1">
+          <Text variant="label-1" className="text-purple-100">
+            Claudio Angrigiani.
+          </Text>
+          <Text variant="body-1" className="text-blue-100">
             Occaecat elit amet officia adipisicing anim Lorem veniam occaecat
             duis irure laboris deserunt tempor quis. Magna ullamco do fugiat
             velit. Irure voluptate velit in occaecat proident quis laborum anim
